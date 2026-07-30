@@ -1,0 +1,10 @@
+# ~ Build output (both directories are recreated by the makefile)
+obj/
+bin/
+
+# ~ Object files and their generated header-dependency lists
+*.o
+*.d
+
+# ~ Capture output written when "Output to file" is switched on (OUTPUT_FILENAME in include/output.h)
+dump.txt
