@@ -21,7 +21,7 @@ struct output_t {
     void (*destroy)(output_t **self_ptr);
 };
 
-output_t *output_create();
+output_t *output_create(void);
 
 void output_destroy(output_t **self_ptr);
 

@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #include <netinet/tcp.h>
+#include <netinet/if_ether.h>
 
 typedef struct tcp_t tcp_t;
 struct tcp_t {
@@ -20,7 +21,7 @@ struct tcp_t {
     void (*destroy)(tcp_t **self_ptr);
 };
 
-tcp_t *tcp_create();
+tcp_t *tcp_create(void);
 
 void tcp_destroy(tcp_t **self_ptr);
 

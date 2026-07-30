@@ -17,9 +17,11 @@ Resources used at bottom (I started with these first before starting).
 ## Installing
 
 1. Clone this repository
-2. Head on over to `/bin`
-3. Inside you will find an already compiled Linux Binary
-4. type `sudo ./packet_sniffer`
+2. From the project root, run `make` to build it
+3. This creates the binary at `bin/packet_sniffer`
+4. Type `sudo ./bin/packet_sniffer` to run it
+
+> There is also `sudo make run`, but be aware it cleans up after itself and deletes the binary once you exit.
 
 ## How to Use
 

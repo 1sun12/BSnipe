@@ -1,7 +1,26 @@
 
 #include "cli.h"
 
-cli_t *cli_create() {
+/*
+ * ==========================================================================
+ * HELPERS - Small bits of housekeeping
+ * ==========================================================================
+ */
+
+void cli_drain_line(const char *input) {
+    // ~ A newline made it into the buffer, so fgets swallowed the whole line, nothing to drain
+    if (strchr(input, '\n') != NULL) {
+        return;
+    }
+
+    // ~ Otherwise keep pulling characters off stdin until this line is gone
+    int ch = 0;
+    while ((ch = getchar()) != '\n' && ch != EOF) {
+        // ~ Nothing to do with these, they were never meant for us
+    }
+}
+
+cli_t *cli_create(void) {
     OUTPUT_D_MSG("cli_create : Attempting to create a CLI object...");
 
     cli_t *new = NULL;
@@ -31,6 +50,9 @@ cli_t *cli_create() {
 }
 
 void cli_destroy(cli_t **self_ptr) {
+    does_exist(self_ptr);
+    does_exist(*self_ptr);
+
     cli_t *self = *self_ptr;
 
     OUTPUT_D_MSG("cli_destroy : CLI object being destroyed...");
@@ -76,8 +98,15 @@ void cli_handle_options(cli_t *self) {
 
     while (in_options == 1) {
         if (fgets(input, sizeof(input), stdin) == NULL) {
-            continue;
+            // ~ stdin is finished (EOF, or it broke), so another line is never coming
+            // ~ Looping back around here would spin forever and eat a whole CPU core
+            OUTPUT_D_MSG("cli_handle_options : stdin has run out, leaving the options menu.");
+            in_options = 0;
+            break;
         }
+
+        // ~ Toss any overflow so a long line cannot turn into a second, unasked-for command
+        cli_drain_line(input);
 
         if (input[0] == 'b' || input[0] == 'B') {
             in_options = 0;
@@ -105,10 +134,16 @@ void cli_handle_options(cli_t *self) {
 }
 
 int cli_check_for_input(cli_t *self, int sockfd) {
-    does_exist(self);
+    does_exist_ret(self, CLI_INPUT_FAILED);
 
     fd_set read_fds;
     struct timeval tv;
+
+    // ~ FD_SET on a negative descriptor is undefined behaviour, so never let one through
+    if (sockfd < 0) {
+        fprintf(stderr, "\n[ERROR]:cli_check_for_input : the socket is not open\n");
+        return CLI_INPUT_FAILED;
+    }
 
     FD_ZERO(&read_fds);
     FD_SET(sockfd, &read_fds);
@@ -122,23 +157,38 @@ int cli_check_for_input(cli_t *self, int sockfd) {
     int result = select(max_fd + 1, &read_fds, NULL, NULL, &tv);
 
     if (result < 0) {
+        // ~ EINTR only means a signal arrived while we were waiting; that is routine, go around again
+        if (errno == EINTR) {
+            return CLI_INPUT_WAITING;
+        }
+
+        // ~ Anything else is a real failure. Say so, so the caller stops instead of
+        // ~ looping straight back in here and printing this same error forever
         perror("\n[ERROR]:cli_check_for_input");
-        return -1;
+        return CLI_INPUT_FAILED;
     }
 
     if (FD_ISSET(0, &read_fds)) {
         char input[16];
         if (fgets(input, sizeof(input), stdin) != NULL) {
+            cli_drain_line(input);
+
             if (input[0] == 's' || input[0] == 'S') {
                 self->running = 0;
-                return 0;
+                return CLI_INPUT_STOPPED;
             }
+        } else {
+            // ~ stdin ran out, so the user has no way left to ask us to stop
+            OUTPUT_D_MSG("cli_check_for_input : stdin has run out, stopping the capture.");
+            self->running = 0;
+            return CLI_INPUT_STOPPED;
         }
     }
 
     if (FD_ISSET(sockfd, &read_fds)) {
-        return 1;
+        return CLI_INPUT_PACKET;
     }
 
-    return -1;
+    // ~ The timeout simply expired without anything showing up
+    return CLI_INPUT_WAITING;
 }

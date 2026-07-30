@@ -1,7 +1,7 @@
 
 #include "output.h"
 
-output_t *output_create() {
+output_t *output_create(void) {
     OUTPUT_D_MSG("output_create : Attempting to create an output handler...");
 
     output_t *new = NULL;
@@ -25,6 +25,9 @@ output_t *output_create() {
 }
 
 void output_destroy(output_t **self_ptr) {
+    does_exist(self_ptr);
+    does_exist(*self_ptr);
+
     output_t *self = *self_ptr;
 
     OUTPUT_D_MSG("output_destroy : Output handler being destroyed...");

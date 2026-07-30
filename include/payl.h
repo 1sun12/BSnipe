@@ -5,7 +5,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#define HEX_LINE_SIZE 48   // ~ One line of hex is equivalent to 0x10, then 0x20... and so on
+#define HEX_BYTES_PER_LINE 16                            // ~ One line of hex is equivalent to 0x10, then 0x20... and so on
+#define HEX_LINE_SIZE (HEX_BYTES_PER_LINE * 3 + 1)       // ~ Every byte prints as "XX " (3 chars), and sprintf lays a NUL down after the last one
 
 typedef struct output_t output_t;
 
@@ -19,11 +20,12 @@ struct payl_t {
     // ~ Function pointers (I LOVE ABSTRACTION!!!! :DDDD)
     void (*parse)(payl_t *self, output_t *out);
     void (*set_buffer)(payl_t *self, void *buff, size_t total_len, size_t headers_len);
+    void (*destroy)(payl_t **self_ptr);
 };
 
-payl_t *payl_create();
+payl_t *payl_create(void);
 
-// ~ payl_destroy();
+void payl_destroy(payl_t **self_ptr);
 
 void payl_set_buffer(payl_t *self, void *buff, size_t total_len, size_t headers_len);
 

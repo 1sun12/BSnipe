@@ -1,7 +1,7 @@
 
 #include "ip.h"
 
-ip_t *ip_create() {
+ip_t *ip_create(void) {
     OUTPUT_D_MSG("ip_create : Attempting to create an IP parser object...");
 
     // ~ Create a new IP Header parser
@@ -28,6 +28,9 @@ ip_t *ip_create() {
 }
 
 void ip_destroy(ip_t **self_ptr) {
+    does_exist(self_ptr);
+    does_exist(*self_ptr);
+
     ip_t *self = *self_ptr;
 
     OUTPUT_D_MSG("ip_destroy : IP parser being destroyed...");
@@ -40,16 +43,20 @@ void ip_destroy(ip_t **self_ptr) {
 }
 
 void ip_set_buffer(ip_t *self, void *buffer) {
+    does_exist(self);
+    does_exist(buffer);
     OUTPUT_D_MSG("ip_set_buffer : Extracting IP Header struct from the buffer...");
 
-    // ~ Located at byte [14] is where the IP Header begins, so we acquire the address (&) of that byte and hard-cast it to a iphdr struct
-    self->hdr = (struct iphdr*)((uint8_t*)buffer + 14);
+    // ~ Located at byte [ETH_HLEN] (14) is where the IP Header begins, so we acquire the address (&) of that byte and hard-cast it to a iphdr struct
+    self->hdr = (struct iphdr*)((uint8_t*)buffer + ETH_HLEN);
 
     OUTPUT_D_MSG("ip_set_buffer : Successfully extracted the IP Header struct from the buffer!");
 }
 
 
 void ip_parse_src(ip_t *self) {
+    does_exist(self);
+    does_exist(self->hdr);
     OUTPUT_D_MSG("ip_parse_src : Attempting to parse the source IP from the IP Header...");
 
     // ~ Copy the source IP into a local-scope variable for re-arranging
@@ -71,6 +78,8 @@ void ip_parse_src(ip_t *self) {
 
 
 void ip_parse_dst(ip_t *self) {
+    does_exist(self);
+    does_exist(self->hdr);
     OUTPUT_D_MSG("ip_parse_dst : Attempting to parse the destination IP from the IP Header...");
 
     // ~ Copy the destination IP into a local-scope variable for re-arranging
