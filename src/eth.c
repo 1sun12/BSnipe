@@ -1,5 +1,3 @@
-
-
 #include "eth.h"
 
 eth_t *eth_create() {
