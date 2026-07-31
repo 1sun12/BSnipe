@@ -8,3 +8,8 @@ bin/
 
 # ~ Capture output written when "Output to file" is switched on (OUTPUT_FILENAME in include/output.h)
 dump.txt
+
+# ~ Capture files written by options [7] and [8]
+frames.txt
+capture.pcap
+*.pcap

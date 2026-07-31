@@ -68,7 +68,7 @@ struct sock_t {
  * @brief Creates and initializes a nou socket (constructor)
  * @return Pointer to nou socket, or NULL on failure
  */
-sock_t *sock_create();
+sock_t *sock_create(void);
 
 /**
  * @brief Destroys and frees a nou socket (destructor)

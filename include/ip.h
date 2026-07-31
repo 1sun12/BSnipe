@@ -14,9 +14,11 @@
 
 /**
  * @brief Network headers
- * - netinet/ip.h   |   Contains structure for IP headers (struct iphdr)
+ * - netinet/ip.h           |   Contains structure for IP headers (struct iphdr)
+ * - netinet/if_ether.h     |   Ethernet header length (ETH_HLEN), the IP header sits right behind it
  */
 #include <netinet/ip.h>
+#include <netinet/if_ether.h>
 
 typedef struct ip_t ip_t;
 struct ip_t {
@@ -42,7 +44,7 @@ struct ip_t {
     void (*destroy)(ip_t **self_ptr);
 };
 
-ip_t *ip_create();
+ip_t *ip_create(void);
 
 void ip_destroy(ip_t **self_ptr);
 

@@ -22,7 +22,7 @@ struct eth_t {
     void (*destroy)(eth_t **self_ptr);
 };
 
-eth_t *eth_create();
+eth_t *eth_create(void);
 
 void eth_destroy(eth_t **self_ptr);
 

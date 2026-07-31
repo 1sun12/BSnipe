@@ -6,7 +6,7 @@
  * ==========================================================================
  */
 
-sock_t *sock_create() {
+sock_t *sock_create(void) {
     OUTPUT_D_MSG("sock_create : Initializing a socket...");
 
     // ~ Initialize a socket pointer
@@ -27,8 +27,11 @@ sock_t *sock_create() {
     // ~ Hints has already been zeroed out by calloc
 
     // ~ Allocate memory to the buffer and error check
+    // ~ A socket with no buffer has nowhere to put a frame, so throw the whole thing away
     if ((new->buffer = malloc(MAX_FRAME_SIZE)) == NULL) {
         perror("\n[ERROR]:sock_create");
+        free(new);
+        return NULL;
     }
 
     // ~ Wire up function pointers
@@ -44,14 +47,16 @@ sock_t *sock_create() {
 }
 
 void sock_destroy(sock_t **self_ptr) {
+    does_exist(self_ptr);
+    does_exist(*self_ptr);
+
     sock_t *self = *self_ptr;
 
     OUTPUT_D_MSG("sock_destroy : Socket being destroyed...");
-    
+
     // ~ Close the linux file descriptor for the socket
-    if (close(self->sockfd) < 0) {
-        perror("\n[ERROR]:sock_destroy");
-    }
+    // ~ sock_close already knows how to do this safely, no reason to write it twice
+    self->close(self);
 
     // ~ Deallocate the buffer
     free(self->buffer);
@@ -103,16 +108,25 @@ void sock_close(sock_t *self) {
     does_exist(self);
     OUTPUT_D_MSG("sock_close : Closing an existing socket...");
 
+    // ~ There is nothing to close if the socket never opened in the first place (-1 is our "unopened" value)
+    if (self->sockfd < 0) {
+        OUTPUT_D_MSG("sock_close : There was no open socket to close.");
+        return;
+    }
+
     if (close(self->sockfd) < 0) {
         perror("\n[ERROR]:sock_close");
         return;
     }
 
+    // ~ Back to "unopened" so nobody tries to close this descriptor a second time
+    self->sockfd = -1;
+
     OUTPUT_D_MSG("sock_close : Successfully closed an existing socket!");
 }
 
 ssize_t sock_recv(sock_t *self) {
-    does_exist(self);
+    does_exist_ret(self, -1);
     OUTPUT_D_MSG("sock_recv : Attempting to recieve message...");
 
     // ~ Total number of bytes recieved from the socket's packet capture
@@ -122,9 +136,10 @@ ssize_t sock_recv(sock_t *self) {
     ssize_t brvd = 0;
 
     // ~ Recieve a raw ethernet frame from your Network Interface Card
+    // ~ Hand -1 back on purpose; the caller checks for a negative to know this failed
     if ((brvd = (recv(self->sockfd, self->buffer, MAX_FRAME_SIZE, 0))) < 0) {
         perror("\n[ERROR]:sock_recv");
-        return;
+        return -1;
     }
 
     OUTPUT_D_MSG("sock_recv : Successfully recieved an ethernet frame!");
