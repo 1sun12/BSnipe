@@ -34,12 +34,64 @@ Resources used at bottom (I started with these first before starting).
 5. To turn `TCP` to `true`, you would type `1t` as an example
 6. File output is off by default, can be set to `true` in `options`
 
+### Dump Options
+
+Each captured packet can be dumped two different ways, and they are independent; you can have both
+on, one, or neither.
+
+| Option | What it does |
+| --- | --- |
+| `[5] Full frame dump` | The entire ethernet frame, headers and all. Off by default |
+| `[6] Payload dump` | Only what is riding behind the headers. On by default |
+| `[7] Frame hex to frames.txt` | Writes every frame as `text2pcap`-ready hex. Off by default |
+| `[8] Write capture.pcap` | Writes a real `.pcap` capture file. Off by default |
+
+Options `[5]` and `[6]` print to wherever `[3]` and `[4]` are pointing. Options `[7]` and `[8]` each
+write their own file and nothing else goes in them, which is what keeps them readable by other tools.
+
+### Opening a Capture in WireShark
+
+`[3] Output to file` writes `dump.txt` for a human to read, so the MAC/IP/Port lines sit in between
+the hex and no other tool can parse it. `[8]` exists for that job instead:
+
+1. Turn on `[8]` in `options`
+2. Capture for a while, then stop with `s`
+3. Open what you caught:
+
+```
+wireshark capture.pcap
+```
+
+That is it, there is no conversion step. `capture.pcap` is a genuine libpcap file, so `tcpdump -r
+capture.pcap` and `tshark -r capture.pcap` read it just as happily.
+
+> Heads up: `[8]` truncates `capture.pcap` every time you start a new capture, so move the file
+> somewhere safe if you want to keep it.
+
+### Pasting Into an Online Decoder
+
+If you would rather not open WireShark at all, `[7]` writes the same frames out as plain hex:
+
+```
+000000  bc 9b 68 fb 90 8a 60 18 95 41 a2 ad 08 00 45 00
+000010  00 4b 1c 2e 40 00 40 06 00 00 c0 a8 00 7d 22 6b
+000020  f3 5d d2 28 01 bb
+```
+
+That pastes straight into any online packet decoder. It is also what `text2pcap` eats, if you ever
+want the conversion route:
+
+```
+text2pcap frames.txt out.pcap
+```
+
 ## Future Plans
 
 If I ever come back to this project to flesh it out some more, here are some ideas I would love to add from my backlog:
 
 - `Monitor Mode` sniffing; captures A LOT more data
-- Exports everything in `.pcap` format, make it cross compatible with `WireShark` and `tcpdump`
+- ~~Exports everything in `.pcap` format, make it cross compatible with `WireShark` and `tcpdump`~~
+  **Done!** Option `[8]` writes a real `.pcap` (see above), and `[7]` covers the `text2pcap` route
 
 ## Resources
 

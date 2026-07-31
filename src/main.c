@@ -11,6 +11,7 @@ HEADERS
 #include "payl.h"
 #include "cli.h"
 #include "output.h"
+#include "pcapw.h"
 
 /*
 ==================================================
@@ -30,15 +31,24 @@ int main(void) {
     // ~ Testing: create an output handler
     output_t *o = output_create();
 
+    // ~ A second output handler, pointed at its own file, for the machine-readable frame hex.
+    // ~ It never writes to the terminal, that is what the one above is for
+    output_t *of = output_create();
+
+    // ~ The pcap writer, which puts frames into a real capture file rather than into text
+    pcapw_t *pw = pcapw_create();
+
     // ~ Testing: create a socket
     sock_t *s = sock_create();
 
     // ~ Every one of those needed memory to exist. If any of them came back empty there is
     // ~ nothing to run, and touching them would be a crash, so leave before we get that far
-    if (c == NULL || o == NULL || s == NULL) {
+    if (c == NULL || o == NULL || of == NULL || pw == NULL || s == NULL) {
         fprintf(stderr, "\n[ERROR]:main : could not set up the sniffer\n");
         cli_destroy(&c);
         output_destroy(&o);
+        output_destroy(&of);
+        pcapw_destroy(&pw);
         sock_destroy(&s);
         return EXIT_FAILURE;
     }
@@ -56,6 +66,8 @@ int main(void) {
         s->destroy(&s);
         c->destroy(&c);
         o->destroy(&o);
+        of->destroy(&of);
+        pw->destroy(&pw);
         return EXIT_FAILURE;
     }
 
@@ -82,6 +94,21 @@ int main(void) {
 
             if (o->to_file == 1) {
                 o->open_file(o);
+            }
+
+            // ~ The frame-hex handler lives on its own file and never touches the terminal, so the
+            // ~ hex in there stays clean enough for text2pcap to read back
+            of->filename = FRAME_FILENAME;
+            of->to_terminal = 0;
+            of->to_file = c->opt_frame_file;
+
+            if (of->to_file == 1) {
+                of->open_file(of);
+            }
+
+            // ~ The pcap file gets its (24) byte header laid down now, before any frame arrives
+            if (c->opt_pcap_file == 1) {
+                pw->open(pw);
             }
 
             while (c->running == 1) {
@@ -197,8 +224,6 @@ int main(void) {
                         t->destroy(&t);
                         continue;
                     }
-                    p->set_buffer(p, s->buffer, (size_t)brvd, headers_len);
-
                     o->writef(o, "\nSource MAC: \t%s", e->src_mac);
                     o->writef(o, "\nDst MAC: \t%s", e->dst_mac);
                     o->writef(o, "\nNext Layer: \t%s", e->ethertype);
@@ -209,10 +234,35 @@ int main(void) {
                     o->writef(o, "\nSource Port: \t%s", t->src_port);
                     o->writef(o, "\nDst Port: \t%s", t->dst_port);
 
-                    o->writef(o, "\n~~ Test Dump ~~\n");
-                    p->parse(p, o);
+                    // ~ The whole frame, headers and all. Starting the dump at (0) instead of at
+                    // ~ headers_len is the only difference between this and the payload dump below
+                    if (c->opt_dump_frame == 1) {
+                        p->set_buffer(p, s->buffer, (size_t)brvd, 0);
+                        o->writef(o, "\n~~ Full Frame ~~\n");
+                        p->parse(p, o);
+                        o->writef(o, "\n");
+                    }
 
-                    o->writef(o, "\n");
+                    // ~ Just what is riding behind the headers
+                    if (c->opt_dump_payload == 1) {
+                        p->set_buffer(p, s->buffer, (size_t)brvd, headers_len);
+                        o->writef(o, "\n~~ Payload ~~\n");
+                        p->parse(p, o);
+                        o->writef(o, "\n");
+                    }
+
+                    // ~ Same full frame again, but written out in text2pcap format to its own file,
+                    // ~ so it can be turned into a real capture later
+                    if (c->opt_frame_file == 1) {
+                        p->set_buffer(p, s->buffer, (size_t)brvd, 0);
+                        p->parse_pcap(p, of);
+                    }
+
+                    // ~ And the same frame again into the real capture file. No hex involved here,
+                    // ~ the raw bytes go down exactly as they came off the wire
+                    if (c->opt_pcap_file == 1) {
+                        pw->write(pw, s->buffer, (size_t)brvd);
+                    }
 
                     e->destroy(&e);
                     i->destroy(&i);
@@ -223,6 +273,17 @@ int main(void) {
 
             if (o->to_file == 1) {
                 o->close_file(o);
+            }
+
+            if (of->to_file == 1) {
+                of->close_file(of);
+                printf("\nFrame hex written to %s (convert with: text2pcap %s out.pcap)\n", FRAME_FILENAME, FRAME_FILENAME);
+            }
+
+            if (c->opt_pcap_file == 1) {
+                unsigned long written = pw->frames_written;
+                pw->close(pw);
+                printf("\nWrote %lu frame(s) to %s (open with: wireshark %s)\n", written, PCAPW_FILENAME, PCAPW_FILENAME);
             }
         } else if (input[0] == 'o' || input[0] == 'O') {
             c->display_options(c);
@@ -235,6 +296,8 @@ int main(void) {
     s->destroy(&s);
     c->destroy(&c);
     o->destroy(&o);
+    of->destroy(&of);
+    pw->destroy(&pw);
 
     printf("\nGoodbye!\n");
     return exit_code;

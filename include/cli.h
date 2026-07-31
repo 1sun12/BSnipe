@@ -32,6 +32,13 @@ struct cli_t {
     int opt_output_file;
     int opt_output_terminal;
 
+    // ~ What each captured packet gets dumped as; the two are independent, so you can have
+    // ~ both, either, or neither
+    int opt_dump_frame;     // ~ The whole ethernet frame, headers and all
+    int opt_dump_payload;   // ~ Just the payload sitting behind the headers
+    int opt_frame_file;     // ~ Also write the frame as text2pcap-ready hex to FRAME_FILENAME
+    int opt_pcap_file;      // ~ Also write the frame into a real .pcap at PCAPW_FILENAME
+
     void (*display_menu)(cli_t *self);
     void (*display_options)(cli_t *self);
     void (*handle_options)(cli_t *self);

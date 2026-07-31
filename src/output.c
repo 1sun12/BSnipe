@@ -12,6 +12,7 @@ output_t *output_create(void) {
     }
 
     new->file = NULL;
+    new->filename = OUTPUT_FILENAME;    // ~ Point somewhere else before open_file for a second stream
     new->to_file = 0;
     new->to_terminal = 1;
 
@@ -52,7 +53,12 @@ void output_open_file(output_t *self) {
         self->file = NULL;
     }
 
-    self->file = fopen(OUTPUT_FILENAME, "w");
+    // ~ Whoever set this up decides which file we write to, so two handlers can be open at once
+    if (self->filename == NULL) {
+        self->filename = OUTPUT_FILENAME;
+    }
+
+    self->file = fopen(self->filename, "w");
     if (self->file == NULL) {
         perror("\n[ERROR]:output_open_file");
         return;
