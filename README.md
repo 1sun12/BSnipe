@@ -9,10 +9,15 @@ You are free to fork or copy my works for educational purposes! I only ask that 
 
 `VERSION 1001` was written over the course of (2) weeks; roughly +(40) hours total.
 
-I think originality in my work is very important; this entire project was hand-typed C in my conquest to learn networking better. 
-Use of A.I. was only used at the end for polish and catching unforseen bugs. ("Make the CLI look pretty", "Can you catch any memory leaks?").
+Present day is probably over +(100) hours of total research and work.
 
 Resources used at bottom (I started with these first before starting).
+
+## Why should I install and use this when WireShark exist?
+
+It's light weight and can me embedded into very small spaces.
+
+It also produces a full .pcap output, which can then be imported into WireShark.
 
 ## Installing
 
